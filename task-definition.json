@@ -1,0 +1,23 @@
+{
+    "family": "demoapp",
+    "containerDefinitions": [
+        {
+            "image": "REPOSITORY_URI:BUILD_NUMBER",
+            "name": "demo",
+	    "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8080,
+                    "hostPort": 8080
+                }
+            ]
+        }
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "requiresCompatibilities": [
+             "FARGATE"
+    ],
+    "networkMode": "awsvpc",
+    "executionRoleArn": "arn:aws:iam::437311381503:role/ecsTaskExecutionRole"
+}
