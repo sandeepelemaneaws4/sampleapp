@@ -1,19 +1,52 @@
-pipeline {
-    agent any
-	
-	  tools
+pipeline { 
+
+    environment { 
+
+     
+		   AWS_ACCOUNT_ID="437311381503"
+        AWS_DEFAULT_REGION="ap-south-1" 
+	CLUSTER_NAME="demo"
+	SERVICE_NAME="demoapp"
+	TASK_DEFINITION_NAME="demoapp"
+	DESIRED_COUNT="1"
+        IMAGE_REPO_NAME="demoapp"
+        IMAGE_TAG="${env.BUILD_ID}"
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+	registryCredential = "aws"
+
+    }
+
+    agent any 
+	 tools
     {
        maven "Maven"
     }
- stages {
-      stage('checkout') {
-           steps {
-             
-                git branch: 'master', url: 'https://github.com/devops4solutions/CI-CD-using-Docker.git'
-             
-          }
+
+    stages { 
+
+        stage('Cloning our Git') { 
+
+            steps { 
+
+                git 'https://github.com/sandeepelemaneaws4/sampleapp.git' 
+
+            }
+
+        } 
+		
+		stage('Tools Init') {
+            steps {
+                script {
+                    echo "PATH = ${PATH}"
+                    echo "M2_HOME = ${M2_HOME}"
+               
+                    
+            }
+            }
         }
-	 stage('Execute Maven') {
+     
+        
+         stage('Execute Maven') {
            steps {
              
                 sh 'mvn package'             
@@ -21,42 +54,50 @@ pipeline {
         }
         
 
-  stage('Docker Build and Tag') {
-           steps {
-              
-                sh 'docker build -t samplewebapp:latest .' 
-                sh 'docker tag samplewebapp nikhilnidhi/samplewebapp:latest'
-                //sh 'docker tag samplewebapp nikhilnidhi/samplewebapp:$BUILD_NUMBER'
-               
-          }
+        stage('Building our image') { 
+
+            steps { 
+
+                script { 
+
+                    dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+
+                }
+
+            } 
+
         }
-     
-  stage('Publish image to Docker Hub') {
-          
-            steps {
-        withDockerRegistry([ credentialsId: "dockerHub", url: "" ]) {
-          sh  'docker push nikhilnidhi/samplewebapp:latest'
-        //  sh  'docker push nikhilnidhi/samplewebapp:$BUILD_NUMBER' 
-        }
-                  
-          }
-        }
-     
-      stage('Run Docker container on Jenkins Agent') {
-             
-            steps 
-			{
-                sh "docker run -d -p 8003:8080 nikhilnidhi/samplewebapp"
- 
+
+        stage('Deploy our image') { 
+
+            steps { 
+
+                script { 
+
+                    docker.withRegistry("https://" + REPOSITORY_URI, "ecr:${AWS_DEFAULT_REGION}:" + registryCredential) { 
+
+                        dockerImage.push() 
+
+                    }
+
+                } 
+
             }
         }
- stage('Run Docker container on remote hosts') {
-             
-            steps {
-                sh "docker -H ssh://jenkins@172.31.28.25 run -d -p 8003:8080 nikhilnidhi/samplewebapp"
- 
-            }
+        
+       stage('Deploy') {
+          steps {
+               withAWS(credentials: registryCredential, region: "${AWS_DEFAULT_REGION}") {
+                script {
+                    sh 'chmod 777 script.sh'
+			sh './script.sh'
+                }
+            } 
         }
-    }
-	}
+      }  
+        } 
+
     
+
+    }
+
