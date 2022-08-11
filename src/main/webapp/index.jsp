@@ -11,7 +11,7 @@
             <table border="0" width="30%" cellpadding="3">
                 <thead>
                     <tr>
-                        <th colspan="2">Login Page</th>
+                        <th colspan="2">lll Page</th>
                     </tr>
                 </thead>
                 <tbody>
